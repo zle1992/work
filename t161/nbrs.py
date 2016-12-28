@@ -44,13 +44,13 @@ def fit(sale_original):
 
 warnings.filterwarnings("ignore")#忽略错误警告
 #读入文件
-def readdata(file,area):    
+def read_old_data(file,area):    
     id_list=[]  #产品名字
     area_list=[]#某地区的销量
     data=[]    #产品属性  如功能 颜色等
     with open(file, 'r',encoding='gbk') as f: #打开文件
         for line in f:     #对每一行进行操作
-            single_line = line.split(',')   #以逗号将将文件的第一行隔开
+            single_line = line.split(';')   #以逗号将将文件的第一行隔开
             id_list.append(single_line.pop(0))#删除产品名称
             area_list.append(single_line[area])  #地区销量
             data.append((single_line))    
@@ -65,7 +65,7 @@ def read_new_data(file):
     data=[]    #产品属性  如功能 颜色等
     with open(file, 'r',encoding='gbk') as f: #打开文件
         for line in f:     #对每一行进行操作
-            single_line = line.split(',')   #以逗号将将文件的第一行隔开
+            single_line = line.split(';')   #以逗号将将文件的第一行隔开
             id_list.append(single_line.pop(0))#删除产品名称
             data.append((single_line))    
     #print(data)
@@ -95,7 +95,7 @@ def transform_sale(sale,threshold_1,threshold_2):
 
 
 #数值化 处理标称属性
-def preprocess(data,sale,area):
+def preprocess(data,area):
     data=(np.asarray(data))#将list数据转化成矩阵
     le = preprocessing.LabelEncoder()     #将标称属性变成数字
     hot = preprocessing.OneHotEncoder(sparse=False)
@@ -127,14 +127,14 @@ def split_data(data,tags,threshold,id_list):
     return train_data, test_data, train_tags, test_tags ,id_list[threshold:]
 def main(area,threshold_1,threshold_2):
     print('area:'+area)
-    id_list,area_list,data=readdata(file,area_dict[area])#读取训练数据，返回矩阵
+    id_list,area_list,data=read_old_data(file,area_dict[area])#读取训练数据，返回矩阵
     
     print("area list trian：")
     print(area_list[:63])
     arae_list=fit(area_list)#拟合图像
     sale_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
 
-    data=preprocess(data,sale_list,area)#将标称数据转化成数字
+    data=preprocess(data,area)#将标称数据转化成数字
 
     #train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.3, random_state=1)#随机选择训练与测试数据
     train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
@@ -143,15 +143,14 @@ def main(area,threshold_1,threshold_2):
     clf = AdaBoostClassifier(n_estimators=10)
     clf.fit(train_data,train_tags)  
     test_tags_pre = clf.predict(test_data)
-    print("orign:")
+    print("orign test tags:" )
     print(test_tags)
-    print("predict:") 
+    print("predict test tags:") 
     print(test_tags_pre)
     print ('accuracy_score:{0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
 ##############################################读取处理news数据
     new_id_list,new_data=read_new_data(new_file)#读取数据
-    new_sale_list=transform_sale(list(new_area_list),threshold_1,threshold_2)
-    new_data=preprocess(new_data,new_sale_list,area)
+    new_data=preprocess(new_data,area)  #预处理数据
 ##########################################################################预测new
   
     new_tags_pre= clf.predict(new_data) 
