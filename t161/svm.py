@@ -120,8 +120,8 @@ def preprocess(data,area):
     return data_0
 
 def split_data(data,tags,threshold,id_list):  
-    train_data=data[:,:]
-    train_tags=tags[:]
+    train_data=data[:threshold,:]
+    train_tags=tags[:threshold]
     test_data=data[threshold:,:]
     test_tags=tags[threshold:]
     return train_data, test_data, train_tags, test_tags ,id_list[threshold:]
@@ -131,7 +131,7 @@ def main(area,threshold_1,threshold_2):
     
     print("area list trian：")
     print(area_list[:63])
-    arae_list=fit(area_list)#拟合图像
+    #arae_list=fit(area_list)#拟合图像
     sale_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
 
     data=preprocess(data,area)#将标称数据转化成数字
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     file = 'data.csv'#文件名
     new_file='new.csv'
     area_dict={'hua_bei':5,'hua_dong':6,'hua_nan':7,'hua_zhong':8}#建立地区字典
-    main('hua_bei',100,3000 )#区域及阈值  
+    main('hua_bei',25,150 )#区域及阈值  
                                 #'hua_bei',25,150  nbrs_single 0.7
                                #'hua_dong',25,500  nbrs_single   0.9
                                #'hua_nan',25,150 nbrs_single   0.7

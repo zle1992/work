@@ -8,41 +8,10 @@ from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import train_test_split
 import warnings
-import pickle
-import numpy as np  #惯例
-import scipy as sp  #惯例
-import pylab as pl  #惯例
-from scipy.optimize import leastsq #这里就是我们要使用的最小二乘的函数
-
-
-##################################拟合###################################
-def fake_func(p, x):#定义拟合函数
-    f = np.poly1d(p) #多项式分布的函数
-    return f(x)
-#残差函数
-def residuals(p, y, x):     #残差函数
-    regularization=0.5#正则化系数
-    ret = y - fake_func(p, x)
-    ret = np.append(ret, np.sqrt(regularization)*p) #将lambda^(1/2)p加在了返回的array的后面
-    return ret 
-
-
-def fit(sale_original):
-    m = 14 #多项式的次数
-    x =range(0,len(sale_original))#x 是0，1,2,3。。。。73
-    y0 = sale_original#y0是销售量
-    y1 = [np.random.normal(0, 10) + y for y in y0]#加入正态分布噪音后的y
-    p0 = np.random.randn(m)#先随机产生一组多项式分布的参数
-    plsq = leastsq(residuals, p0, args=(y0, x))#最小二乘法
-    #print ('Fitting Parameters ：', plsq[0]) #输出拟合参数
-    #画图形
-    pl.plot(x, sale_original, label='real')
-    pl.plot(x, fake_func(plsq[0], x), label='fitted curve')
-    pl.legend()
-    pl.show()
-    return fake_func(plsq[0], x)
-
+import matplotlib  
+import matplotlib.pyplot as plt  
 warnings.filterwarnings("ignore")#忽略错误警告
+
 #读入文件
 def read_old_data(file,area):    
     id_list=[]  #产品名字
@@ -120,42 +89,98 @@ def preprocess(data,area):
     return data_0
 
 def split_data(data,tags,threshold,id_list):  
-    train_data=data[:threshold,:]
-    train_tags=tags[:threshold]
+    train_data=data[:,:]
+    train_tags=tags[:]
     test_data=data[threshold:,:]
     test_tags=tags[threshold:]
     return train_data, test_data, train_tags, test_tags ,id_list[threshold:]
-def main(area,threshold_1,threshold_2):
+
+# SVM Classifier using cross validation    
+def svm_cross_validation(train_x, train_y):    
+    from sklearn.grid_search import GridSearchCV    
+    from sklearn.svm import SVC    
+    model = SVC(kernel='rbf', probability=True)    
+    param_grid = {'C': [ 1, 4, 10, 100]}   #'kernel':['rbf', 'linear', 'poly','sigmoid'],   'gamma': [0.001, 0.0001]
+    grid_search = GridSearchCV(model, param_grid, n_jobs = 10, verbose=1,cv=2)    
+    grid_search.fit(train_x, train_y)    
+    best_parameters = grid_search.best_estimator_.get_params()    
+    for para, val in list(best_parameters.items()):    
+       #print(para, val)    
+       pass
+    print(grid_search.grid_scores_)
+    print(grid_search.best_score_)
+    model = SVC(kernel=best_parameters['kernel'], C=best_parameters['C'], gamma=best_parameters['gamma'], probability=True)    
+    model.fit(train_x, train_y)    
+    return model 
+def svm_plot(train_data,train_tags,test_data, test_tags):
+    list_accuracy_score=[]
+    list_parameter_1=['rbf', 'linear','poly','sigmoid']#
+    list_parameter_2=[1,2,3,10]
+    for parameter_2 in list_parameter_2:
+        #for parameter_2 in list_parameter_2:
+        clf = SVC(C = parameter_2)
+        clf.fit(train_data,train_tags)  
+        test_tags_pre = clf.predict(test_data)
+        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
+    best_parameter_1=list_parameter_2 [list_accuracy_score.index(max(list_accuracy_score))]
+    print("best parameter 1: {0:.2f}".format(best_parameter_1))
+    plot(list_parameter_1,list_accuracy_score)  
+def plot(x,y):
+   # plt.subplot(2, 1, 1)
+    plt.plot( [1,2,3,4],y, 'bo-')
+    plt.xticks([1,2,3,4], x, rotation=0)  
+    plt.ylim([0.5,1.0])
+    plt.title('SVM')
+    plt.ylabel('accuracy')
+    plt.xlabel('c')
+
+    # plt.subplot(2, 1, 2)
+    # plt.plot(x, y, 'r.-')
+    # plt.ylim([0.5,1.0])
+    # plt.xlabel('time (s)')
+    # plt.ylabel('Undamped')
+
+    plt.show()
+    # ax1 = plt.subplot2grid((1, 1), (0, 0))
+    # ax1.plot(x,y, "s-",linewidth=2,color="red")  
+    # ax1.set_ylabel("list_accuracy_score")
+    # ax1.set_xlabel("list_parameter_1")
+    # ax1.set_ylim([0.5, 1.0])
+    # ax1.legend(loc="lower right")
+    # ax1.set_title('list_accuracy_score with parameter')
+    # plt.show() #保存图  
+
+
+
+def  main(area,threshold_1,threshold_2):
     print('area:'+area)
-    id_list,area_list,data=read_old_data(file,area_dict[area])#读取训练数据，返回矩阵
-    
+    id_list,area_list,data=read_old_data(file,area_dict[area])#读取训练数据，返回矩阵 
     print("area list trian：")
     print(area_list[:63])
-    #arae_list=fit(area_list)#拟合图像
     sale_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
-
     data=preprocess(data,area)#将标称数据转化成数字
-
-    #train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.3, random_state=1)#随机选择训练与测试数据
-    train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
+    train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.25, random_state=1)#随机选择训练与测试数据
+    #train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
+    #clf=svm_cross_validation(train_data, train_tags)
 #########################################  测试准确率
-    from sklearn.ensemble import AdaBoostClassifier
-    clf = AdaBoostClassifier(n_estimators=10)
-    clf.fit(train_data,train_tags)  
-    test_tags_pre = clf.predict(test_data)
-    print("orign test tags:" )
-    print(test_tags)
-    print("predict test tags:") 
-    print(test_tags_pre)
-    print ('accuracy_score:{0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
-##############################################读取处理news数据
-    new_id_list,new_data=read_new_data(new_file)#读取数据
-    new_data=preprocess(new_data,area)  #预处理数据
-##########################################################################预测new
+    # # from sklearn.svm import SVC
+    # from sklearn.ensemble import AdaBoostClassifier
+    # clf = AdaBoostClassifier(n_estimators=10)
+    
+    svm_plot(train_data,train_tags,test_data, test_tags)
+#     print("orign:")
+#     print(test_tags)
+#     print("predict:") 
+#     print(test_tags_pre)
+#     print ('accuracy_score:{0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
+# #############################################读取处理news数据
+#     new_id_list,new_data=read_new_data(new_file)#读取数据
+# #     new_data=preprocess(new_data,area)  #预处理数据
+# # ##########################################################################预测new
   
-    new_tags_pre= clf.predict(new_data) 
-    print('new product:')
-    print(new_tags_pre)
+#     new_tags_pre= clf.predict(new_data) 
+#     print('new product:')
+#     print(new_tags_pre)
 
     
 
@@ -163,7 +188,7 @@ if __name__ == '__main__':
     file = 'data.csv'#文件名
     new_file='new.csv'
     area_dict={'hua_bei':5,'hua_dong':6,'hua_nan':7,'hua_zhong':8}#建立地区字典
-    main('hua_bei',100,3000 )#区域及阈值  
+    main('hua_bei',25,100 )#区域及阈值  
                                 #'hua_bei',25,150  nbrs_single 0.7
                                #'hua_dong',25,500  nbrs_single   0.9
                                #'hua_nan',25,150 nbrs_single   0.7
