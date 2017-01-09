@@ -10,6 +10,7 @@ from sklearn.cross_validation import train_test_split
 import warnings
 import matplotlib  
 import matplotlib.pyplot as plt  
+import sklearn.neural_network
 warnings.filterwarnings("ignore")#忽略错误警告
 
 #读入文件
@@ -130,30 +131,37 @@ def svm_cross_validation(train_x, train_y):
     model.fit(train_x, train_y)    
     return model 
 def svm_plot(train_data,train_tags,test_data, test_tags):
+    from sklearn.neighbors import KNeighborsClassifier  
+    #clf = KNeighborsClassifier( n_neighbors=5)#default with k=5
+    from sklearn.neural_network import MLPClassifier
+    from sklearn.naive_bayes import GaussianNB
+    clf = GaussianNB()
+    clf = MLPClassifier(hidden_layer_sizes=(50,),  
+                    solver='sgd', verbose=10, tol=1e-4, random_state=1,
+                    learning_rate_init=.1,max_iter=1, alpha=0.4)
+    #clf = AdaBoostClassifier(n_estimators=5)
     list_accuracy_score=[]
-    list_parameter_1=['rbf', 'linear','poly','sigmoid']#
-    list_parameter_2=[1,4,10,100]
+    list_parameter_1=[1,5,10,30,100,400]#
+    list_parameter_2=[1e-4,1e-2,1e-1,1,2,4,10]
     #################################################
     for parameter_1 in list_parameter_1:
-        clf = SVC(kernel = parameter_1)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
     best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
-    print("best parameter kernel: "+(best_parameter_1))
+    print('best parameter c: {0:.3f}'.format(best_parameter_1))
     ######################################
-    plt.plot( [1,2,3,4],list_accuracy_score, 'bo-')
-    plt.xticks([1,2,3,4], list_parameter_1, rotation=0)  
+    plt.plot( list_parameter_1,list_accuracy_score, 'bo-')
+    plt.xticks(list_parameter_1, list_parameter_1, rotation=0)  
     plt.ylim([0.4,1.0])
-    plt.title('SVM')
-    plt.xlabel("kernel")
+    plt.title('mlp')
+    plt.xlabel("max_iter")
     plt.ylabel("accuracy")
     plt.show()
     ###################################################
     #################################################
     list_accuracy_score=[]
     for parameter_2 in list_parameter_2:
-        clf = SVC(C = parameter_2)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
@@ -163,11 +171,15 @@ def svm_plot(train_data,train_tags,test_data, test_tags):
     plt.plot(list_parameter_2,list_accuracy_score, 'bo-')
     plt.xticks(list_parameter_2, list_parameter_2, rotation=0)  
     plt.ylim([0.5,1.0])
-    plt.title('SVM')
-    plt.xlabel("c")
+    plt.title('mlp')
+    plt.xlabel("alpha")
     plt.ylabel("accuracy")
     plt.show()
-    return SVC(kernel=best_parameter_1, C = best_parameter_2)
+    #return  KNeighborsClassifier( n_neighbors=best_parameter_1)
+    #return MLPClassifier(alpha=best_parameter_1)
+    return   MLPClassifier( hidden_layer_sizes=(50,),  
+                    solver='sgd', verbose=10, tol=1e-4, random_state=1,
+                    learning_rate_init=.1,max_iter=best_parameter_1, alpha=best_parameter_2)
 def plot(list_x,list_y,x):
    # plt.subplot(2, 1, 1)
     plt.plot( list_x,list_y, 'bo-')
@@ -203,13 +215,12 @@ def  main(area,threshold_1,threshold_2):
     print(area_list[:63])
     sale_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
     data=preprocess(data)#将标称数据转化成数字
-    #train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.25, random_state=1)#随机选择训练与测试数据
-    train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
+    train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.25, random_state=1)#随机选择训练与测试数据
+    #train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
     #clf=svm_cross_validation(train_data, train_tags)
 #########################################  测试准确率
     # # # from sklearn.svm import SVC
-    # from sklearn.ensemble import AdaBoostClassifier
-    # clf = AdaBoostClassifier(n_estimators=4)
+
     
     clf=svm_plot(train_data,train_tags,test_data, test_tags)
     clf.fit(train_data,train_tags)

@@ -109,7 +109,7 @@ def preprocess(data,area):
         data_single=data[:,x] 
         data_single=le.fit_transform(data_single)#特征矩阵进行定性特征编码的对象
         data_0=np.c_[data_0,data_single]#数据合并
-    data_0=hot.fit_transform(data_0)#数字转化成数字
+    #data_0=hot.fit_transform(data_0)#数字转化成数字
     data_a=data[:,4].astype(float64)#数据只取价格
     data_a=mm.fit_transform(data_a)#价格处理
     #print(data_a)
@@ -136,8 +136,8 @@ def main(area,threshold_1,threshold_2):
 
     data=preprocess(data,area)#将标称数据转化成数字
 
-    #train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.3, random_state=1)#随机选择训练与测试数据
-    train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
+    train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.3, random_state=1)#随机选择训练与测试数据
+    #train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
 #########################################  测试准确率
     from sklearn.svm import SVC
     clf = SVC(kernel = 'rbf',C=1)

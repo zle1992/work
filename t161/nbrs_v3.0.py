@@ -77,7 +77,7 @@ def preprocess(data):
         data_single=data[:,x] 
         data_single=le.fit_transform(data_single)#特征矩阵进行定性特征编码的对象
         data_0=np.c_[data_0,data_single]#数据合并
-    #data_0=hot.fit_transform(data_0)#数字转化成数字
+    data_0=hot.fit_transform(data_0)#数字转化成数字
     data_a=data[:,4].astype(float64)#数据只取价格
     data_0=np.c_[data_0,data_a]  #合并功能与价格
     data_0=mm.fit_transform(data_0)#价格处理
@@ -130,44 +130,46 @@ def svm_cross_validation(train_x, train_y):
     model.fit(train_x, train_y)    
     return model 
 def svm_plot(train_data,train_tags,test_data, test_tags):
+    from sklearn.ensemble import AdaBoostClassifier
+    from sklearn.ensemble import GradientBoostingClassifier
+    #clf = AdaBoostClassifier(n_estimators=5)
+    clf =AdaBoostClassifier(n_estimators=10)
     list_accuracy_score=[]
-    list_parameter_1=['rbf', 'linear','poly','sigmoid']#
-    list_parameter_2=[1,4,10,100]
+    list_parameter_1=[1,5,10,30,100,200]#
+    list_parameter_2=[1,2,3,4,5]
     #################################################
     for parameter_1 in list_parameter_1:
-        clf = SVC(kernel = parameter_1)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
     best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
-    print("best parameter kernel: "+(best_parameter_1))
+    print('best parameter c: {0:.3f}'.format(best_parameter_1))
     ######################################
-    plt.plot( [1,2,3,4],list_accuracy_score, 'bo-')
-    plt.xticks([1,2,3,4], list_parameter_1, rotation=0)  
+    plt.plot( list_parameter_1,list_accuracy_score, 'bo-')
+    plt.xticks(list_parameter_1, list_parameter_1, rotation=0)  
     plt.ylim([0.4,1.0])
-    plt.title('SVM')
-    plt.xlabel("kernel")
+    plt.title('Ada')
+    plt.xlabel("n_estimators")
     plt.ylabel("accuracy")
     plt.show()
     ###################################################
     #################################################
-    list_accuracy_score=[]
-    for parameter_2 in list_parameter_2:
-        clf = SVC(C = parameter_2)
-        clf.fit(train_data,train_tags)  
-        test_tags_pre = clf.predict(test_data)
-        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
-    best_parameter_2=list_parameter_2 [list_accuracy_score.index(max(list_accuracy_score))]
-    print('best parameter c: {0:.3f}'.format(best_parameter_2))
-    ######################################
-    plt.plot(list_parameter_2,list_accuracy_score, 'bo-')
-    plt.xticks(list_parameter_2, list_parameter_2, rotation=0)  
-    plt.ylim([0.5,1.0])
-    plt.title('SVM')
-    plt.xlabel("c")
-    plt.ylabel("accuracy")
-    plt.show()
-    return SVC(kernel=best_parameter_1, C = best_parameter_2)
+    # list_accuracy_score=[]
+    # for parameter_2 in list_parameter_2:
+    #     clf.fit(train_data,train_tags)  
+    #     test_tags_pre = clf.predict(test_data)
+    #     list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
+    # best_parameter_2=list_parameter_2 [list_accuracy_score.index(max(list_accuracy_score))]
+    # print('best parameter c: {0:.3f}'.format(best_parameter_2))
+    # ######################################
+    # plt.plot(list_parameter_2,list_accuracy_score, 'bo-')
+    # plt.xticks(list_parameter_2, list_parameter_2, rotation=0)  
+    # plt.ylim([0.5,1.0])
+    # plt.title('Ada')
+    # plt.xlabel("max_depth")
+    # plt.ylabel("accuracy")
+    # plt.show()
+    return AdaBoostClassifier(n_estimators=best_parameter_1)
 def plot(list_x,list_y,x):
    # plt.subplot(2, 1, 1)
     plt.plot( list_x,list_y, 'bo-')
@@ -208,8 +210,7 @@ def  main(area,threshold_1,threshold_2):
     #clf=svm_cross_validation(train_data, train_tags)
 #########################################  测试准确率
     # # # from sklearn.svm import SVC
-    # from sklearn.ensemble import AdaBoostClassifier
-    # clf = AdaBoostClassifier(n_estimators=4)
+
     
     clf=svm_plot(train_data,train_tags,test_data, test_tags)
     clf.fit(train_data,train_tags)
