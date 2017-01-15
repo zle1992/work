@@ -44,14 +44,14 @@ def fit(sale_original):
 
 warnings.filterwarnings("ignore")#忽略错误警告
 #读入文件
-def readdata(file,area):    
+def read_old_data(file,area):    
     id_list=[]  #产品名字
     area_list=[]#某地区的销量
     data=[]    #产品属性  如功能 颜色等
     with open(file, 'r',encoding='gbk') as f: #打开文件
         for line in f:     #对每一行进行操作
-            single_line = line.split(',')   #以逗号将将文件的第一行隔开
-            id_list.append(single_line.pop(0))#删除‘三菱重工空调’
+            single_line = line.split(';')   #以逗号将将文件的第一行隔开
+            id_list.append(single_line.pop(0))#删除产品名称
             area_list.append(single_line[area])  #地区销量
             data.append((single_line))    
     #print(data)
@@ -60,7 +60,19 @@ def readdata(file,area):
     print("Modell")
     print(id_list[1:])
     return id_list[1:] ,area_list[1:],data[1:]  #返回数据，从第二列开始 因为第一列是属性名字
-    
+def read_new_data(file):    
+    id_list=[]  #产品名字
+    data=[]    #产品属性  如功能 颜色等
+    with open(file, 'r',encoding='gbk') as f: #打开文件
+        for line in f:     #对每一行进行操作
+            single_line = line.split(';')   #以逗号将将文件的第一行隔开
+            id_list.append(single_line.pop(0))#删除产品名称
+            data.append((single_line))    
+    #print(data)
+    print("新产品名称")
+    print(id_list[1:])
+    return id_list[1:] ,data[1:]  #返回数据，从第二列开始 因为第一列是属性名字
+        
     
     
 
@@ -83,7 +95,7 @@ def transform_sale(sale,threshold_1,threshold_2):
 
 
 #数值化 处理标称属性
-def preprocess(data,sale,area):
+def preprocess(data,area):
     data=(np.asarray(data))#将list数据转化成矩阵
     le = preprocessing.LabelEncoder()     #将标称属性变成数字
     hot = preprocessing.OneHotEncoder(sparse=False)
@@ -97,14 +109,8 @@ def preprocess(data,sale,area):
         data_single=data[:,x] 
         data_single=le.fit_transform(data_single)#特征矩阵进行定性特征编码的对象
         data_0=np.c_[data_0,data_single]#数据合并
-    data_0=hot.fit_transform(data_0)#数字转化成数字
-
-
-
-    if(area_dict[area]==9):   #如果是所有地区的销量
-        data_a=data[:,4:8].astype(float64)  #数据取4到11列
-    else:                      #分别查看4分区的销量
-        data_a=data[:,4].astype(float64)#数据只取价格
+    #data_0=hot.fit_transform(data_0)#数字转化成数字
+    data_a=data[:,4].astype(float64)#数据只取价格
     data_a=mm.fit_transform(data_a)#价格处理
     #print(data_a)
     data_0=np.c_[data_0,data_a]  #合并功能与价格
@@ -113,26 +119,25 @@ def preprocess(data,sale,area):
     #print(data_0)
     return data_0
 
-
 def split_data(data,tags,threshold,id_list):  
-    train_data=data[:,:]
-    train_tags=tags[:]
+    train_data=data[:threshold,:]
+    train_tags=tags[:threshold]
     test_data=data[threshold:,:]
     test_tags=tags[threshold:]
     return train_data, test_data, train_tags, test_tags ,id_list[threshold:]
 def main(area,threshold_1,threshold_2):
     print('area:'+area)
-    id_list,area_list,data=readdata(file,area_dict[area])#读取数据
+    id_list,area_list,data=read_old_data(file,area_dict[area])#读取训练数据，返回矩阵
     
     print("area list trian：")
     print(area_list[:63])
-    arae_list=fit(area_list)#拟合图像
+    #arae_list=fit(area_list)#拟合图像
     sale_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
 
-    data=preprocess(data,sale_list,area)#将标称数据转化成数字
+    data=preprocess(data,area)#将标称数据转化成数字
 
-    #train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.3, random_state=1)#随机选择训练与测试数据
-    train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
+    train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.3, random_state=1)#随机选择训练与测试数据
+    #train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
 #########################################  测试准确率
     from sklearn.svm import SVC
     clf = SVC(kernel = 'rbf',C=1)
@@ -144,9 +149,8 @@ def main(area,threshold_1,threshold_2):
     print(test_tags_pre)
     print ('accuracy_score:{0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
 ##############################################读取处理news数据
-    new_id_list,new_area_list,new_data=readdata(new_file,area_dict[area])#读取数据
-    new_sale_list=transform_sale(list(new_area_list),threshold_1,threshold_2)
-    new_data=preprocess(new_data,new_sale_list,area)
+    new_id_list,new_data=read_new_data(new_file)#读取数据
+    new_data=preprocess(new_data,area)  #预处理数据
 ##########################################################################预测new
   
     new_tags_pre= clf.predict(new_data) 
@@ -158,11 +162,15 @@ def main(area,threshold_1,threshold_2):
 if __name__ == '__main__':
     file = 'data.csv'#文件名
     new_file='new.csv'
-    area_dict={'hua_bei':5,'hua_dong':6,'hua_nan':7,'hua_zhong':8,'all':9}#建立地区字典
-    main('all',100,3000 )#区域及阈值  
+    area_dict={'hua_bei':5,'hua_dong':6,'hua_nan':7,'hua_zhong':8}#建立地区字典
+    main('hua_bei',25,150 )#区域及阈值  
                                 #'hua_bei',25,150  nbrs_single 0.7
                                #'hua_dong',25,500  nbrs_single   0.9
                                #'hua_nan',25,150 nbrs_single   0.7
                                 #'hua_zhong',25,150  nbrs_single   0.7
                                 #'all',100,3000     nbrs_single  0.9
     
+
+
+
+
