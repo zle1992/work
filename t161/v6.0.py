@@ -7,6 +7,8 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import train_test_split
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier  
 import warnings
 import matplotlib  
 import matplotlib.pyplot as plt  
@@ -26,8 +28,8 @@ def read_old_data(file,area):
     #print(data)
     for x in range(1,len(area_list)): #将销量转化为int  原始读入的是str类型
         area_list[x]=int(area_list[x])
-    print("Modell")
-    print(id_list[1:])
+    #print("Modell")
+    #print(id_list[1:])
     return id_list[1:] ,area_list[1:],data[1:]  #返回数据，从第二列开始 因为第一列是属性名字
 def read_new_data(file):    
     id_list=[]  #产品名字
@@ -50,16 +52,24 @@ def read_new_data(file):
 #output: 转化后的销量列表
 def transform_sale(sale,threshold_1,threshold_2):
     sale_list=[]
+    c_list=[]
+    m_list=[]
     for x in range(0,len(sale)):
         if(int(sale[x])<threshold_1):
             sale_list.append('low')
+            c_list.append('r')
+            m_list.append('o')
         elif(int(sale[x])>threshold_2):
             sale_list.append('high')
+            c_list.append('g')
+            m_list.append('^')
         else:
             sale_list.append('mid')
-    print("Ist-Bedarf：")
-    print(sale_list)
-    return sale_list
+            c_list.append('b')
+            m_list.append('x')
+    #print("Ist-Bedarf：")
+    #print(sale_list)
+    return sale_list, c_list ,m_list
 
 
 #数值化 处理标称属性
@@ -73,7 +83,7 @@ def preprocess(data):
     #print(data.shape)
     data_0=data[:,0]   #第一列
     data_0=le.fit_transform(data_0)#得到第一列转化后的结果
-    for x in range(1,4): #range(1,4)=1,2,3 取剩下三列速度 冷暖 颜色
+    for x in range(1,4): #range(1,4)=1,2,3 取剩下三列速度2 冷暖2 颜色3
         data_single=data[:,x] 
         data_single=le.fit_transform(data_single)#特征矩阵进行定性特征编码的对象
         data_0=np.c_[data_0,data_single]#数据合并
@@ -89,94 +99,14 @@ def split_data(data,tags,threshold,id_list):
     test_data=data[threshold:,:]
     test_tags=tags[threshold:]
     return train_data, test_data, train_tags, test_tags ,id_list[threshold:]
-def svm(data,sale_list):
-    parameter_1='rbf'
-    parameter_2=100
-    svmclf=[[SVC(kernel = parameter_1),SVC(C = parameter_2)],
-    [['rbf', 'linear','poly','sigmoid'],[1,2,4,10,20,40],
-    ["svm with kernel","svm with c"],["kernel",'C']] 
-    best_parameter_1 =clf_plot(data,sale_list,svmclf)
 
-    clf =SVC(kernel=best_parameter_1,C=best_parameter_2)
-    return clf
-    # svmclf=[SVC(kernel = parameter_1,C=2),['rbf', 'linear','poly','sigmoid'],"svm","C"]
-    # best_parameter_1 =clf_plot(data,sale_list,svmclf)
-    # parameter_1=100
-    # svmclf=[SVC(C=best_parameter_1),[1,2,4,10,20,40],"svm","C"]
-    # best_parameter_2 =clf_plot(data,sale_list,svmclf)
-    # clf =SVC(kernel=best_parameter_1,C=best_parameter_2)
-    
-    
-    
-    
-    
-    
-    
-    
-# SVM Classifier using cross validation    
-def svm_cross_validation(train_x, train_y):    
-    from sklearn.grid_search import GridSearchCV    
-    from sklearn.svm import SVC    
-    model = SVC(kernel='poly', probability=True)    
-    param_grid = {'C': [ 1, 4, 10, 100],   'kernel':['rbf', 'linear', 'poly','sigmoid'],   'gamma': [0.001, 0.0001]}
-    grid_search = GridSearchCV(model, param_grid, n_jobs = 10, verbose=1,cv=2)    
-    grid_search.fit(train_x, train_y)    
-    best_parameters = grid_search.best_estimator_.get_params()    
-    for para, val in list(best_parameters.items()):    
-       print(para, val)    
-       pass
-    #print(grid_search.grid_scores_)
-    print(grid_search.best_score_)
-    model = SVC(kernel=best_parameters['kernel'], C=best_parameters['C'], gamma=best_parameters['gamma'], probability=True)    
-    model.fit(train_x, train_y)    
-    return model 
-def rf_cross_validation(train_x, train_y):    
-    from sklearn.grid_search import GridSearchCV    
-    from sklearn.svm import SVC    
-    model = SVC(kernel='rbf', probability=True)    
-    param_grid = {'C': [ 1, 4, 10, 100],   'kernel':['rbf', 'linear', 'poly','sigmoid'],   'gamma': [0.001, 0.0001]}
-    grid_search = GridSearchCV(model, param_grid, n_jobs = 10, verbose=1,cv=2)    
-    grid_search.fit(train_x, train_y)    
-    best_parameters = grid_search.best_estimator_.get_params()    
-    for para, val in list(best_parameters.items()):    
-       print(para, val)    
-       pass
-    #print(grid_search.grid_scores_)
-    print(grid_search.best_score_)
-    model = SVC(kernel=best_parameters['kernel'], C=best_parameters['C'], gamma=best_parameters['gamma'], probability=True)    
-    model.fit(train_x, train_y)    
-    return model
-def clf_plot(train_data,train_tags,clf_parameter):
-    list_accuracy_score=[]
-    
-    train_data, test_data, train_tags, test_tags= train_test_split( train_data,train_tags, test_size=0.25, random_state=1)
-    list_parameter_1=clf_parameter[1]# ['rbf', 'linear','poly','sigmoid']=
-    title_1=clf_parameter[2]
-    xlabel_1=clf_parameter[3]
-    # list_parameter_2=clf[4]#[1,4,10,100]=
-    # title_2=clf[5]
-    # xlabel_2=clf[6]
-    #################################################
-    i=-1
-    for parameter_1 in list_parameter_1:  
-        i=i+1
-        clf=clf_parameter[0]
-        clf.fit(train_data,train_tags) 
 
-        test_tags_pre = clf.predict(test_data)
-        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
-    best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
-    print("best parameter "+xlabel_1)
-    print(best_parameter_1)
-    ######################################
-    plot(list_parameter_1,list_accuracy_score,title_1,xlabel_1,"accuracy")
-    return best_parameter_1 
 
 def plot(list_parameter_1,list_accuracy_score,title,xlabel,ylabel):
    # plt.subplot(2, 1, 1)
     plt.plot(list(range(len(list_parameter_1))),list_accuracy_score, 'bo-')
     plt.xticks(list(range(len(list_parameter_1))), list_parameter_1, rotation=0)  
-    plt.ylim([0.4,1.0])
+    plt.ylim([0.3,1.0])
     plt.title(title) 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -185,24 +115,26 @@ def plot(list_parameter_1,list_accuracy_score,title,xlabel,ylabel):
       
 def svm_plot(train_data,train_tags,test_data, test_tags):
     list_accuracy_score=[]
-    list_parameter_1=['rbf', 'linear','poly','sigmoid']#
-    list_parameter_2=[1,4,10,100]
+    print("svm ")
+    list_parameter_1=['rbf', 'linear','poly','sigmoid']# 核函数
+    list_parameter_2=range(1,100)#C  你可以修改
     #################################################
     for parameter_1 in list_parameter_1:
-        clf = SVC(kernel = parameter_1)
+        clf = SVC(kernel = parameter_1,C=10)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
     best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
-    print("best parameter kernel: "+(best_parameter_1))
+    print("best parameter1: "+(best_parameter_1))
     ######################################
-    plt.plot( [1,2,3,4],list_accuracy_score, 'bo-')
-    plt.xticks([1,2,3,4], list_parameter_1, rotation=0)  
-    plt.ylim([0.4,1.0])
-    plt.title('SVM') 
-    plt.xlabel("kernel")
-    plt.ylabel("accuracy")
-    plt.show()
+    #plot(list_parameter_1,list_accuracy_score,'SVM',"kernel","accuracy")
+    # plt.plot( [1,2,3,4],list_accuracy_score, 'bo-')
+    # plt.xticks([1,2,3,4], list_parameter_1, rotation=0)  
+    # plt.ylim([0.4,1.0])
+    # plt.title('SVM') # 你可以修改
+    # plt.xlabel("kernel")# 你可以修改
+    # plt.ylabel("accuracy")# 你可以修改
+    # plt.show()
     ###################################################
     #################################################
     list_accuracy_score=[]
@@ -212,142 +144,176 @@ def svm_plot(train_data,train_tags,test_data, test_tags):
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
     best_parameter_2=list_parameter_2 [list_accuracy_score.index(max(list_accuracy_score))]
-    print('best parameter c: {0:.3f}'.format(best_parameter_2))
+    print('best parameter2 : {0:.3f}'.format(best_parameter_2))
     ######################################
-    plt.plot(list_parameter_2,list_accuracy_score, 'bo-')
-    plt.xticks(list_parameter_2, list_parameter_2, rotation=0)  
-    plt.ylim([0.5,1.0])
-    plt.title('SVM')
-    plt.xlabel("c")
-    plt.ylabel("accuracy")
-    plt.show()
+    #plot(list_parameter_2,list_accuracy_score,'SVM',"c","accuracy")
     return SVC(kernel=best_parameter_1, C = best_parameter_2)
 def rf_plot(train_data,train_tags,test_data, test_tags):
     from sklearn.ensemble import RandomForestClassifier 
-    clf = RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1)
+    print("rf ")
     list_accuracy_score=[]
-    list_parameter_1=[1,2,3,4,5]
+    list_oob_error=[]
+    list_parameter_1=[1,2,3,4,5]#
     list_parameter_2=[1,2,3,4,5]#
+    list_parameter_3=[1,2,3,4,5]#
     #################################################
     for parameter_1 in list_parameter_1:
+        clf = RandomForestClassifier(max_depth=parameter_1, n_estimators=10, max_features=1,oob_score=True)
+        clf.fit(train_data,train_tags)  
+        test_tags_pre = clf.predict(test_data)
+        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
+        list_oob_error.append(1 - clf.oob_score_)
+    best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
+    print('best parameter1 : {0:.3f}'.format(best_parameter_1))
+    ######################################
+    plot(list_parameter_1, list_oob_error,'rf',"max_depth","oob_error")
+    plot(list_parameter_1,list_accuracy_score,'rf',"max_depth","accuracy")
+    ###################################################
+    #################################################
+    list_accuracy_score=[]
+    list_oob_error=[]
+    for parameter_2 in list_parameter_2:
+        clf = RandomForestClassifier(max_depth=best_parameter_1, n_estimators=parameter_2, max_features=1,oob_score=True)
+        clf.fit(train_data,train_tags)  
+        test_tags_pre = clf.predict(test_data)
+        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
+        list_oob_error.append(1 - clf.oob_score_)
+    best_parameter_2=list_parameter_2 [list_accuracy_score.index(max(list_accuracy_score))]
+    print('best parameter2 : {0:.3f}'.format(best_parameter_2))
+    ######################################
+    plot(list_parameter_2, list_oob_error,'rf',"n_estimators","oob_error")
+    plot(list_parameter_2,list_accuracy_score,'rf',"n_estimators","accuracy")
+    list_accuracy_score=[]
+    list_oob_error=[]
+    for parameter_3 in list_parameter_3:
+        clf = RandomForestClassifier(max_depth=best_parameter_1, n_estimators=best_parameter_2, max_features=parameter_3,oob_score=True)
+        clf.fit(train_data,train_tags)  
+        test_tags_pre = clf.predict(test_data)
+        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
+        list_oob_error.append(1 - clf.oob_score_)
+    best_parameter_3=list_parameter_3 [list_accuracy_score.index(max(list_accuracy_score))]
+    print('best parameter3 : {0:.3f}'.format(best_parameter_3))
+    ######################################
+    plot(list_parameter_3, list_oob_error,'rf',"max_features","oob_error")
+    plot(list_parameter_1,list_accuracy_score,'rf',"max_features","accuracy")
+    return  RandomForestClassifier(max_depth=best_parameter_1, n_estimators=best_parameter_2, max_features=best_parameter_3) 
+def knn_plot(train_data,train_tags,test_data, test_tags):
+    list_accuracy_score=[]
+    print("knn")
+    list_parameter_1=[1,2,10,30,40,53]#
+    #################################################
+    for parameter_1 in list_parameter_1:
+        clf = KNeighborsClassifier( n_neighbors=parameter_1)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
     best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
-    print('best parameter c: {0:.3f}'.format(best_parameter_1))
+    print('best parameter : {0:.3f}'.format(best_parameter_1))
     ######################################
-    plt.plot( list_parameter_1,list_accuracy_score, 'bo-')
-    plt.xticks(list_parameter_1, list_parameter_1, rotation=0)  
-    plt.ylim([0.4,1.0])
-    plt.title('rf')
-    plt.xlabel("max_depth")
-    plt.ylabel("accuracy")
-    plt.show()
+    plot(list_parameter_1,list_accuracy_score,'knn',"k","accuracy")
     ###################################################
-    #################################################
-    list_accuracy_score=[]
-    for parameter_2 in list_parameter_2:
-        clf.fit(train_data,train_tags)  
-        test_tags_pre = clf.predict(test_data)
-        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
-    best_parameter_2=list_parameter_2 [list_accuracy_score.index(max(list_accuracy_score))]
-    print('best parameter c: {0:.3f}'.format(best_parameter_2))
-    ######################################
-    plt.plot(list(range(len(list_parameter_2))),list_accuracy_score, 'bo-')
-    plt.xticks(list(range(len(list_parameter_2))), list_parameter_2, rotation=0)  
-    plt.ylim([0.5,1.0])
-    plt.title('rf')
-    plt.xlabel("n_estimators")
-    plt.ylabel("accuracy")
-    plt.show()
-    return  RandomForestClassifier(max_depth=best_parameter_1, n_estimators=best_parameter_2, max_features=1) 
-def knn_plot(train_data,train_tags,test_data, test_tags):
-    from sklearn.neighbors import KNeighborsClassifier  
-    clf = KNeighborsClassifier( n_neighbors=5)#default with k=5
-    #from sklearn.neural_network import MLPClassifier
-    from sklearn.naive_bayes import GaussianNB
-   # clf = GaussianNB()
-   # clf = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=400, alpha=1e-4,
-    #                solver='sgd', verbose=10, tol=1e-4, random_state=1)
-    #clf = AdaBoostClassifier(n_estimators=5)
+   
+    return  KNeighborsClassifier( n_neighbors=best_parameter_1)
+ 
+def ada_plot(train_data,train_tags,test_data, test_tags):
+    #
+    print("ada ")
     list_accuracy_score=[]
     list_parameter_1=[1,5,10,30,100,200]#
-    list_parameter_2=[1,2,3,4,5]
     #################################################
     for parameter_1 in list_parameter_1:
+        clf = AdaBoostClassifier(n_estimators=parameter_1)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
     best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
-    print('best parameter c: {0:.3f}'.format(best_parameter_1))
+    print('best parameter : {0:.3f}'.format(best_parameter_1))
     ######################################
-    plt.plot( list_parameter_1,list_accuracy_score, 'bo-')
-    plt.xticks(list_parameter_1, list_parameter_1, rotation=0)  
-    plt.ylim([0.4,1.0])
-    plt.title('KNN')
-    plt.xlabel("K")
-    plt.ylabel("accuracy")
-    plt.show()
+    plot(list_parameter_1,list_accuracy_score,'ada',"n_estimators","accuracy")
     ###################################################
-    #################################################
-    list_accuracy_score=[]
-    for parameter_2 in list_parameter_2:
-        clf.fit(train_data,train_tags)  
-        test_tags_pre = clf.predict(test_data)
-        list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
-    best_parameter_2=list_parameter_2 [list_accuracy_score.index(max(list_accuracy_score))]
-    print('best parameter c: {0:.3f}'.format(best_parameter_2))
-    ######################################
-    plt.plot(list_parameter_2,list_accuracy_score, 'bo-')
-    plt.xticks(list_parameter_2, list_parameter_2, rotation=0)  
-    plt.ylim([0.5,1.0])
-    plt.title('Ada')
-    plt.xlabel("max_depth")
-    plt.ylabel("accuracy")
-    plt.show()
-    return  KNeighborsClassifier( n_neighbors=best_parameter_1)
-    #return MLPClassifier(alpha=best_parameter_1)
-    #return  KNeighborsClassifier( n_neighbors=5)       
+    return   AdaBoostClassifier(n_estimators=best_parameter_1 )
 
 def  main(area,threshold_1,threshold_2):
-    print('area:'+area)
+    #print('area:'+area)
     id_list,area_list,data=read_old_data(file,area_dict[area])#读取训练数据，返回矩阵 
-    print("area list trian：")
-    print(area_list[:63])
-    sale_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
+    #print("area list trian：")
+    #print(area_list[:63])
+    sale_list,c_list,m_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
     data=preprocess(data)#将标称数据转化成数字
-    train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.25, random_state=1)#随机选择训练与测试数据
-    #train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
+    #plot_data(data,c_list,m_list)
+    #train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.25, random_state=1)#随机选择训练与测试数据
+    train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
     #clf=svm_cross_validation(train_data, train_tags)
-#########################################  测试准确率
-    # # # from sklearn.svm import SVC
-    # from sklearn.ensemble import AdaBoostClassifier
-    # clf = AdaBoostClassifier(n_estimators=4)
-    
+
+#########################################  选择分类器
+    clf=rf_plot(train_data,train_tags,test_data, test_tags)
     #clf=svm_plot(train_data,train_tags,test_data, test_tags)
-    clf = svm(data,sale_list)
+    # clf=knn_plot(train_data,train_tags,test_data, test_tags)
+    # clf=ada_plot(train_data,train_tags,test_data, test_tags)
+######################################### 
     clf.fit(train_data,train_tags)
     test_tags_pre = clf.predict(test_data)
-    print("orign:")
-    print(test_tags)
-    print("predict:") 
-    print(test_tags_pre)
+
+    # print("orign:")
+    # print(test_tags)
+    # print("predict:") 
+    # print(test_tags_pre)
+
     print ('accuracy_score:{0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
 #############################################读取处理news数据
-    new_id_list,new_data=read_new_data(new_file)#读取数据
-    new_data=preprocess(new_data)  #预处理数据
+    # new_id_list,new_data=read_new_data(new_file)#读取数据
+    # new_data=preprocess(new_data)  #预处理数据
 # ##########################################################################预测new
-    new_tags_pre= clf.predict(new_data) 
-    print('new product:')
-    print(new_tags_pre)
-
+    # new_tags_pre= clf.predict(new_data) 
+    # print('new product:')
+    # print(new_tags_pre)
+    return accuracy_score(test_tags, test_tags_pre)
+def plot_data(data,c_list,m_list):
+    import scipy.io as sio  
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
+    m = data[:,2:]
+    m=m.T
+    x,y,z = m[0],m[1],m[2]
+    ax=plt.subplot(projection='3d') #创建一个三维的绘图工程
     
+    #将数据点分成三部分画，在颜色上有区分度
+    ax.scatter(x,y,z,c=c_list) #绘制数据点
+    ax.set_xlabel('X fun1')
+    ax.set_ylabel('Y fun2')
+    ax.set_zlabel('Z :price')
+    plt.show()    
+def find_best():
+    file = 'data.csv'#文件名
+    new_file='new.csv'
+    area_dict={'hua_bei':5,'hua_dong':6,'hua_nan':7,'hua_zhong':8}#建立地区字典
+    threshold_1=range(1,150,30)# 10是间隔   1，11.。。。。
+    threshold_2=range(100,650,100)
+    list_accuracy_score=[]
+    for x in threshold_1:
+        for y in threshold_2:
+            print("x :",x,"y: ",y)
+            list_accuracy_score.append(main('hua_dong',x,y))
+    best_index=list_accuracy_score.index(max(list_accuracy_score))
+    best_y=best_index%len(threshold_1)
+    best_x=int((best_index-best_y)/len(threshold_1))
+    print("best x:" ,threshold_1[best_x],"best y:",threshold_2[best_y])
+    print('best_accuracy_score:{0:.3f}'.format(max(list_accuracy_score)))
+                                #区域及阈值  
+                                #'hua_bei',36,112  nbrs_single 0.7
+                               #'hua_dong',91,535  nbrs_single   0.9
+                               #'hua_nan',69,236 nbrs_single   0.7
+                                #'hua_zhong',45,130  nbrs_single   0.7
+                                #'all',100,3000     nbrs_single  0.9
+
 
 if __name__ == '__main__':
     file = 'data.csv'#文件名
     new_file='new.csv'
     area_dict={'hua_bei':5,'hua_dong':6,'hua_nan':7,'hua_zhong':8}#建立地区字典
-    main('hua_zhong',45,130 )#区域及阈值  
+    #find_best()
+    
+    main('hua_dong',61,300)#区域及阈值  
                                 #'hua_bei',36,112  nbrs_single 0.7
                                #'hua_dong',91,535  nbrs_single   0.9
                                #'hua_nan',69,236 nbrs_single   0.7
@@ -356,5 +322,8 @@ if __name__ == '__main__':
     
 
 
-
-
+#2017 14:30    开始
+#2017 15:25     简化程序  finash!
+#2017 17:05    oob error  finish !
+#2017 19:36   find_best threshold finish! 
+#2017 21:30    plot finish! 

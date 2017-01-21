@@ -10,7 +10,6 @@ from sklearn.cross_validation import train_test_split
 import warnings
 import matplotlib  
 import matplotlib.pyplot as plt  
-import sklearn.neural_network
 warnings.filterwarnings("ignore")#忽略错误警告
 
 #读入文件
@@ -131,45 +130,30 @@ def svm_cross_validation(train_x, train_y):
     model.fit(train_x, train_y)    
     return model 
 def svm_plot(train_data,train_tags,test_data, test_tags):
-    from sklearn.neighbors import KNeighborsClassifier  
-<<<<<<< HEAD
-    clf = KNeighborsClassifier( n_neighbors=5)#default with k=5
-    #from sklearn.neural_network import MLPClassifier
-    from sklearn.naive_bayes import GaussianNB
-   # clf = GaussianNB()
-   # clf = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=400, alpha=1e-4,
-    #                solver='sgd', verbose=10, tol=1e-4, random_state=1)
-=======
-    #clf = KNeighborsClassifier( n_neighbors=5)#default with k=5
-    from sklearn.neural_network import MLPClassifier
-    from sklearn.naive_bayes import GaussianNB
-    clf = GaussianNB()
-    clf = MLPClassifier(hidden_layer_sizes=(100, 100), max_iter=400, alpha=1e-4,
-                    solver='sgd', verbose=10, tol=1e-4, random_state=1)
->>>>>>> 2db11556db8384805c606d241538531003e96138
-    #clf = AdaBoostClassifier(n_estimators=5)
     list_accuracy_score=[]
-    list_parameter_1=[1,5,10,30,100,200]#
-    list_parameter_2=[1,2,3,4,5]
+    list_parameter_1=['rbf', 'linear','poly','sigmoid']#
+    list_parameter_2=[1,4,10,100]
     #################################################
     for parameter_1 in list_parameter_1:
+        clf = SVC(kernel = parameter_1)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
     best_parameter_1=list_parameter_1 [list_accuracy_score.index(max(list_accuracy_score))]
-    print('best parameter c: {0:.3f}'.format(best_parameter_1))
+    print("best parameter kernel: "+(best_parameter_1))
     ######################################
-    plt.plot( list_parameter_1,list_accuracy_score, 'bo-')
-    plt.xticks(list_parameter_1, list_parameter_1, rotation=0)  
+    plt.plot( [1,2,3,4],list_accuracy_score, 'bo-')
+    plt.xticks([1,2,3,4], list_parameter_1, rotation=0)  
     plt.ylim([0.4,1.0])
-    plt.title('KNN')
-    plt.xlabel("K")
+    plt.title('SVM')
+    plt.xlabel("kernel")
     plt.ylabel("accuracy")
     plt.show()
     ###################################################
     #################################################
     list_accuracy_score=[]
     for parameter_2 in list_parameter_2:
+        clf = SVC(C = parameter_2)
         clf.fit(train_data,train_tags)  
         test_tags_pre = clf.predict(test_data)
         list_accuracy_score.append(' {0:.3f}'.format(accuracy_score(test_tags, test_tags_pre)))
@@ -179,19 +163,11 @@ def svm_plot(train_data,train_tags,test_data, test_tags):
     plt.plot(list_parameter_2,list_accuracy_score, 'bo-')
     plt.xticks(list_parameter_2, list_parameter_2, rotation=0)  
     plt.ylim([0.5,1.0])
-    plt.title('Ada')
-    plt.xlabel("max_depth")
+    plt.title('SVM')
+    plt.xlabel("c")
     plt.ylabel("accuracy")
     plt.show()
-<<<<<<< HEAD
-    return  KNeighborsClassifier( n_neighbors=best_parameter_1)
-    #return MLPClassifier(alpha=best_parameter_1)
-    #return  KNeighborsClassifier( n_neighbors=5)
-=======
-    #return  KNeighborsClassifier( n_neighbors=best_parameter_1)
-    #return MLPClassifier(alpha=best_parameter_1)
-    return  clf
->>>>>>> 2db11556db8384805c606d241538531003e96138
+    return SVC(kernel=best_parameter_1, C = best_parameter_2)
 def plot(list_x,list_y,x):
    # plt.subplot(2, 1, 1)
     plt.plot( list_x,list_y, 'bo-')
@@ -227,12 +203,13 @@ def  main(area,threshold_1,threshold_2):
     print(area_list[:63])
     sale_list=transform_sale(list(area_list),threshold_1,threshold_2)#将销量转化成需求高中低
     data=preprocess(data)#将标称数据转化成数字
-    train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.25, random_state=1)#随机选择训练与测试数据
-    #train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
+    #train_data, test_data, train_tags, test_tags= train_test_split( data,sale_list, test_size=0.25, random_state=1)#随机选择训练与测试数据
+    train_data, test_data, train_tags, test_tags,id_list_test=split_data( data,sale_list,63,id_list)#人为选择数据
     #clf=svm_cross_validation(train_data, train_tags)
 #########################################  测试准确率
     # # # from sklearn.svm import SVC
-
+    # from sklearn.ensemble import AdaBoostClassifier
+    # clf = AdaBoostClassifier(n_estimators=4)
     
     clf=svm_plot(train_data,train_tags,test_data, test_tags)
     clf.fit(train_data,train_tags)
@@ -256,14 +233,6 @@ if __name__ == '__main__':
     file = 'data.csv'#文件名
     new_file='new.csv'
     area_dict={'hua_bei':5,'hua_dong':6,'hua_nan':7,'hua_zhong':8}#建立地区字典
-<<<<<<< HEAD
-    main('hua_dong',91,535  )#区域及阈值  
-                              #'hua_bei',36,112  nbrs_single 0.7
-                               #'hua_dong',91,535  nbrs_single   0.9
-                               #'hua_nan',69,236 nbrs_single   0.7
-                                #'hua_zhong',45,130  nbrs_single   0.7
-                                #'all',100,3000     nbrs_single  0.9
-=======
     main('hua_bei',25,150 )#区域及阈值  
                                 #'hua_bei',25,150  nbrs_single 0.7
                                #'hua_dong',25,500  nbrs_single   0.9
@@ -271,7 +240,6 @@ if __name__ == '__main__':
                                 #'hua_zhong',25,150  nbrs_single   0.7
                                 #'all',100,3000     nbrs_single  0.9
     
->>>>>>> 2db11556db8384805c606d241538531003e96138
 
 
 
