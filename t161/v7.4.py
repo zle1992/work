@@ -257,18 +257,18 @@ def  clf_predict(area,threshold_1,threshold_2):
     return accuracy_score(test_tags, test_tags_pre)
 def find_best():
     threshold_1=list(range(30,40,1))# 10是间隔   1，11.。。。。
-    threshold_2=list(range(100,120,1))
+    threshold_2=list(range(100,112,1))
     list_accuracy_score=[]
     for x in threshold_1:
         for y in threshold_2:
             list_accuracy_score.append(clf_predict('hua_zhong',x,y))
             print("x :",x,"y: ",y)
     best_index=list_accuracy_score.index(max(list_accuracy_score))
-    print("best_index",best_index,'length of x',len(threshold_1),"length of y",len(threshold_2))
-    best_y=best_index%len(threshold_1)
-    best_x=int((best_index-best_y)/len(threshold_2))
-    print(best_x, "  >" ,best_y)
-    print("best x " ,threshold_1[best_x],"best y :",threshold_2[best_y])
+    print("best_index:",best_index,'length of x:',len(threshold_1),"length of y:",len(threshold_2))
+    best_y_index=best_index%len(threshold_2)
+    best_x_index=int((best_index-best_y_index)/len(threshold_2))
+    print("best_x_index :" ,best_x_index, "best_y_index :" ,best_y_index)
+    print("best x " ,threshold_1[best_x_index],"best y :",threshold_2[best_y_index])
     print('best_accuracy_score:{0:.3f}'.format(max(list_accuracy_score)))
 
 if __name__ == '__main__':
@@ -304,3 +304,5 @@ if __name__ == '__main__':
 
 
 #2017 1.19 22:50    runtime finish!
+
+#2017 1.23 19:36      V7.3  FIX best_x and best_y
