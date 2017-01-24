@@ -2,12 +2,12 @@
 from PIL import Image ,ImageDraw,ImageFont
 def read(): 
     i=0
-    f = open("123.txt",'r')
+    f = open("shequ.txt",'r')
     for line in f:
         single_line = line.split('\t')
         if(len(single_line)>10):
             i=i+1
-            print  "process " +str(i)+ " user of 31"
+            print  "process " +str(i)+ " user "
 
 
             img = Image.open("a.png") 
